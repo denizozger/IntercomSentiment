@@ -2,6 +2,12 @@
 import sys
 import pika
 import json
+import nltk
+nltk.download('vader_lexicon')
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+
+sid = SentimentIntensityAnalyzer()
 
 
 def emit_message(message):
@@ -18,6 +24,31 @@ def emit_message(message):
                           body=json.dumps(message))
     print(" [x] Sent %r:%r" % (routing_key, message))
     connection.close()
+
+
+def map_scores_to_visuals(score):
+    if 1 >= score >= 0.66:
+        return '😃'
+    elif 0.66 >= score >= 0.33:
+        return '😊'
+    elif 0.33 >= score > 0:
+        return '🙂'
+    elif score == 0:
+        return '😐'
+    elif 0 > score >= -0.33:
+        return '🙁'
+    elif -0.33 >= score >= -0.66:
+        return '😖'
+    elif -0.66 >= score >= -1:
+        return '😫'
+    else:
+        return '¯\_(ツ)_/¯'
+
+
+def analyse_sentence(sentence):
+    ss = sid.polarity_scores(sentence)
+    compound_score = next(ss[x] for x in sorted(ss) if x == 'compound')
+    print('%s %s ' % (map_scores_to_visuals(compound_score), sentence))
 
 
 def main():
@@ -38,7 +69,9 @@ def main():
     print(' [*] Waiting for logs. To exit press CTRL+C')
 
     def callback(ch, method, properties, body):
-        print(" [x] %r:%r" % (method.routing_key, json.loads(body)))
+        message = body.decode('ascii')
+        # print(" [x] %r:%r" % (method.routing_key, message))
+        analyse_sentence(message)
 
     channel.basic_consume(callback,
                           queue=queue_name,

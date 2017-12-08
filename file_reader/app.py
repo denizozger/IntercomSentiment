@@ -17,7 +17,7 @@ def emit_message(message):
     routing_key = 'input-file.row.read'
     channel.basic_publish(exchange='ISA',
                           routing_key=routing_key,
-                          body=json.dumps(message))
+                          body=message)
     print(" [x] Sent %r:%r" % (routing_key, message))
     connection.close()
 
